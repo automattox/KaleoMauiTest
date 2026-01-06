@@ -37,7 +37,7 @@ jobs:
 
           $appId = "${{ env.APP_ID }}"
           $flightName = "${{ env.FLIGHT_NAME }}"
-          $groupId = "${{ env.GROUP_ID }}"
+          $groupId = [string]"${{ env.GROUP_ID }}"
           $bundlePath = "${{ env.BUNDLE_PATH }}"
 
           if (-not (Test-Path $bundlePath)) {
