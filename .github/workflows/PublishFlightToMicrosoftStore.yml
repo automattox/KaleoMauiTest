@@ -1,0 +1,85 @@
+name: PublishFlightToMicrosoftStore
+
+on:
+  workflow_dispatch:
+
+jobs:
+  publish-flight:
+    runs-on: windows-latest
+
+    env:
+      APP_ID: 9MWQ25VXH47L
+      FLIGHT_NAME: test_flight2
+      GROUP_ID: 1152921504607280737
+      BUNDLE_PATH: release/App.Maui_3.5.3_x64.msixbundle
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Installs msstore CLI via Microsoft's action
+      - name: Setup Microsoft Store Developer CLI
+        uses: microsoft/microsoft-store-apppublisher@v1.1
+
+      # Configure msstore CLI for Partner Center auth (service principal)
+      - name: Configure Microsoft Store Developer CLI
+        shell: pwsh
+        run: >
+          msstore reconfigure
+          --tenantId "${{ secrets.AZURE_AD_TENANT_ID }}"
+          --sellerId "${{ secrets.SELLER_ID }}"
+          --clientId "${{ secrets.AZURE_AD_APPLICATION_CLIENT_ID }}"
+          --clientSecret "${{ secrets.AZURE_AD_APPLICATION_SECRET }}"
+
+      - name: Create (or reuse) flight and publish bundle
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+
+          $appId = "${{ env.APP_ID }}"
+          $flightName = "${{ env.FLIGHT_NAME }}"
+          $groupId = "${{ env.GROUP_ID }}"
+          $bundlePath = "${{ env.BUNDLE_PATH }}"
+
+          if (-not (Test-Path $bundlePath)) {
+            throw "Bundle not found at: $bundlePath"
+          }
+
+          Write-Host "Attempting to create flight '$flightName' for app $appId..."
+          $createOut = ""
+          $flightId = $null
+
+          try {
+            $createOut = & msstore flights create $appId $flightName -g $groupId 2>&1 | Out-String
+            Write-Host $createOut
+
+            # Extract the first GUID-looking value from output
+            if ($createOut -match '([0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12})') {
+              $flightId = $Matches[1]
+            } else {
+              throw "Could not parse flight id from create output."
+            }
+          }
+          catch {
+            Write-Host "Flight create failed (maybe it already exists). Trying to find existing flight id..."
+            Write-Host $_
+
+            # Fallback: list flights and find the one with the friendly name
+            $listOut = & msstore flights list $appId 2>&1 | Out-String
+            Write-Host $listOut
+
+            # This assumes the flight name and id appear on the same line; adjust if your output differs.
+            $line = $listOut.Split("`n") | Where-Object { $_ -match [regex]::Escape($flightName) } | Select-Object -First 1
+            if (-not $line) { throw "Could not find existing flight named '$flightName' in flights list output." }
+
+            if ($line -match '([0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12})') {
+              $flightId = $Matches[1]
+            } else {
+              throw "Found flight line, but could not parse flight id. Line: $line"
+            }
+          }
+
+          Write-Host "Using FlightId: $flightId"
+          Write-Host "Publishing bundle to flight..."
+
+          # Recommended: explicitly pass the bundle via --inputFile
+          & msstore publish . --inputFile $bundlePath -id $appId -f $flightId
