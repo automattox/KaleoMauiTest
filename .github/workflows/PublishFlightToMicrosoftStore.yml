@@ -88,5 +88,4 @@ jobs:
           Write-Host "Using FlightId: $flightId"
           Write-Host "Publishing bundle to flight..."
 
-          # Recommended: explicitly pass the bundle via --inputFile
           & msstore publish $bundlePath -id $appId -f $flightId
