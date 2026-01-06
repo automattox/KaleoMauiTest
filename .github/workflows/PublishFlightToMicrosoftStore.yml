@@ -10,7 +10,7 @@ jobs:
     env:
       APP_ID: 9MWQ25VXH47L
       FLIGHT_NAME: test_flight3
-      GROUP_ID: 1152921504607280737
+      GROUP_ID: "1152921504607280737"
       BUNDLE_PATH: release/App.Maui_3.5.3_x64.msixbundle
 
     steps:
