@@ -1,0 +1,49 @@
+name: PublishFlightToMicrosoftStore_simple
+
+on:
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Microsoft Store CLI
+        uses: microsoft/microsoft-store-apppublisher@v1.1
+
+      - name: Configure msstore
+        shell: pwsh
+        run: |
+          msstore reconfigure `
+            --tenantId "${{ secrets.AZURE_AD_TENANT_ID }}" `
+            --sellerId "${{ secrets.SELLER_ID }}" `
+            --clientId "${{ secrets.AZURE_AD_APPLICATION_CLIENT_ID }}" `
+            --clientSecret "${{ secrets.AZURE_AD_APPLICATION_SECRET }}"
+
+      - name: Create flight and publish
+        shell: pwsh
+        run: |
+          $appId      = "9MWQ25VXH47L"
+          $flightName = "test_flight4"
+          $groupId    = "1152921504607280737"
+          $bundlePath = "App.Maui_3.5.3_x64.msixbundle"
+
+          Write-Host "Creating flight '$flightName'..."
+          $out = & msstore flights create $appId $flightName -g $groupId 2>&1 | Out-String
+          Write-Host $out
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "Flight creation failed"
+          }
+
+          if ($out -notmatch '([0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12})') {
+            throw "Could not find flight id in output"
+          }
+
+          $flightId = $Matches[1]
+          Write-Host "FlightId: $flightId"
+
+          Write-Host "Publishing bundle..."
+          msstore publish $bundlePath -id $appId -f $flightId
