@@ -26,9 +26,9 @@ jobs:
         shell: pwsh
         run: |
           $appId      = "9MWQ25VXH47L"
-          $flightName = "test_flight4"
+          $flightName = "test_flight5"
           $groupId    = "1152921504607280737"
-          $bundlePath = "release/App.Maui_3.5.3_x64.msixbundle"
+          $bundlePath = "release/App.Maui_3.6.0_x64.msixbundle"
 
           Write-Host "Creating flight '$flightName'..."
           $out = & msstore flights create $appId $flightName -g $groupId 2>&1 | Out-String
