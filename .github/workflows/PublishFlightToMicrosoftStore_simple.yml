@@ -2,6 +2,18 @@ name: PublishFlightToMicrosoftStore_simple
 
 on:
   workflow_dispatch:
+        inputs:
+          flightname:
+            description: "Flight name"
+            required: true
+            type: string
+            default: "test_flight5"
+          
+          appversion:
+            description: "App Version"
+            required: true
+            type: string
+            default: "3.6.0"
 
 jobs:
   publish:
@@ -21,14 +33,21 @@ jobs:
             --sellerId "${{ secrets.SELLER_ID }}" `
             --clientId "${{ secrets.AZURE_AD_APPLICATION_CLIENT_ID }}" `
             --clientSecret "${{ secrets.AZURE_AD_APPLICATION_SECRET }}"
-
+            
+      - name: Set bundle path
+        shell: pwsh
+        env:
+          APP_VERSION: ${{ github.event.inputs.appversion }}
+        run: |
+          $bundlePath = "release/App.Maui_$env:APP_VERSION`_x64.msixbundle"
+          echo "Bundle path: $bundlePath"
+          
       - name: Create flight and publish
         shell: pwsh
         run: |
           $appId      = "9MWQ25VXH47L"
-          $flightName = "test_flight5"
+          $flightName = "${{ github.event.inputs.flightname }}"
           $groupId    = "1152921504607280737"
-          $bundlePath = "release/App.Maui_3.6.0_x64.msixbundle"
 
           Write-Host "Creating flight '$flightName'..."
           $out = & msstore flights create $appId $flightName -g $groupId 2>&1 | Out-String
