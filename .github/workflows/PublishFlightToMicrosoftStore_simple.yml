@@ -33,21 +33,16 @@ jobs:
             --sellerId "${{ secrets.SELLER_ID }}" `
             --clientId "${{ secrets.AZURE_AD_APPLICATION_CLIENT_ID }}" `
             --clientSecret "${{ secrets.AZURE_AD_APPLICATION_SECRET }}"
-            
-      - name: Set bundle path
+          
+      - name: Create flight and publish
         shell: pwsh
         env:
           APP_VERSION: ${{ github.event.inputs.appversion }}
         run: |
-          $bundlePath = "release/App.Maui_$env:APP_VERSION`_x64.msixbundle"
-          echo "Bundle path: $bundlePath"
-          
-      - name: Create flight and publish
-        shell: pwsh
-        run: |
           $appId      = "9MWQ25VXH47L"
           $flightName = "${{ github.event.inputs.flightname }}"
           $groupId    = "1152921504607280737"
+          $bundlePath = "release/App.Maui_$env:APP_VERSION`_x64.msixbundle"
 
           Write-Host "Creating flight '$flightName'..."
           $out = & msstore flights create $appId $flightName -g $groupId 2>&1 | Out-String
